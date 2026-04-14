@@ -8,8 +8,7 @@ A lightweight Windows network monitoring tool built with Python. Monitor your ho
 
 ## Screenshot
 
-<!-- TODO: replace with actual screenshot after first run -->
-![Home Network Guardian screenshot](docs/screenshot.png)
+![Home Network Guardian screenshot](home-network-guardian/assets/screenshot.png)
 
 ---
 
