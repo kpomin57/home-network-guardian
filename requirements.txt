@@ -1,1 +1,3 @@
 psutil>=5.9.0
+scapy>=2.5.0          # Optional: required for Packet Capture tab
+                      # Windows: also install Npcap from https://npcap.com/
