@@ -622,6 +622,50 @@ class App(tk.Tk):
                  if str(btn.cget("state")) != "disabled" else None)
         return btn
 
+    def _render_alert_detail(self, parent: tk.Frame, detail: str) -> None:
+        """Render a (possibly multi-line) alert detail into ``parent``.
+
+        Lines that begin with "•" are treated as port-level sub-items and
+        rendered with extra indentation, a dimmer colour for the description,
+        and a highlighted port/name prefix so the structure is easy to scan.
+
+        Args:
+            parent: The alert card frame to render into.
+            detail: Detail string, may contain "\\n"-separated lines.
+        """
+        for line in detail.split("\n"):
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if stripped.startswith("•"):
+                # Port sub-item: "• 445 (SMB): explanation text"
+                # Split at the first ":" to separate the label from the why
+                body = stripped[1:].strip()   # strip leading "•"
+                if ":" in body:
+                    label, _, why = body.partition(":")
+                    sub = tk.Frame(parent, bg=PANEL)
+                    sub.pack(fill="x", padx=8, pady=(1, 0))
+                    tk.Label(sub, text=f"  ▸ {label.strip()}",
+                             bg=PANEL, fg=WARN,
+                             font=("Consolas", 8, "bold"),
+                             anchor="w").pack(side="left")
+                    tk.Label(sub, text=f"  —  {why.strip()}",
+                             bg=PANEL, fg=TEXT_DIM,
+                             font=("Consolas", 8),
+                             anchor="w", wraplength=220, justify="left").pack(
+                             side="left", fill="x", expand=True)
+                else:
+                    tk.Label(parent, text=f"  ▸ {body}",
+                             bg=PANEL, fg=TEXT_DIM,
+                             font=("Consolas", 8), anchor="w").pack(
+                             fill="x", padx=12)
+            else:
+                # Regular detail line (e.g. "Process: chrome")
+                tk.Label(parent, text=f"   {stripped}",
+                         bg=PANEL, fg=TEXT_DIM,
+                         font=("Consolas", 8), anchor="w").pack(
+                         fill="x", padx=8)
+
     def _log(self, msg: str) -> None:
         """Append a timestamped message to the diagnostics log and file logger."""
         ts   = datetime.now().strftime("%H:%M:%S")
@@ -737,8 +781,7 @@ class App(tk.Tk):
                     tk.Label(row, text=a.label(), bg=PANEL, fg=color,
                              font=("Consolas", 9, "bold"),
                              anchor="w").pack(fill="x", padx=8)
-                    tk.Label(row, text=f"   {a.detail}", bg=PANEL, fg=TEXT_DIM,
-                             font=("Consolas", 8), anchor="w").pack(fill="x", padx=8)
+                    self._render_alert_detail(row, a.detail)
                     tk.Frame(row, bg=BORDER, height=1).pack(fill="x", padx=8, pady=2)
 
         except Exception as e:
@@ -811,9 +854,7 @@ class App(tk.Tk):
                              bg=PANEL, fg=color,
                              font=("Consolas", 9, "bold"),
                              anchor="w").pack(fill="x", padx=8)
-                    tk.Label(row, text=f"   {a['detail']}",
-                             bg=PANEL, fg=TEXT_DIM,
-                             font=("Consolas", 8), anchor="w").pack(fill="x", padx=8)
+                    self._render_alert_detail(row, a["detail"])
                     tk.Frame(row, bg=BORDER, height=1).pack(fill="x", padx=8, pady=2)
 
         except Exception as e:

@@ -15,6 +15,8 @@ from typing import Callable, Dict, List, Optional, Tuple
 from core.models import LanDevice
 from core.utils import (
     PROBE_PORTS,
+    RISKY_PORTS,
+    SUSPICIOUS_PORT_INFO,
     cidr_hosts,
     get_local_ips,
     ping,
@@ -158,14 +160,24 @@ class LanScanner:
                     })
 
                 if dev.risky:
+                    risky_open = sorted(
+                        p for p in dev.open_ports if p in RISKY_PORTS
+                    )
+                    lines = []
+                    for port in risky_open:
+                        info = SUSPICIOUS_PORT_INFO.get(port)
+                        if info:
+                            lines.append(
+                                f"• {port} ({info['name']}): {info['why']}"
+                            )
+                        else:
+                            lines.append(f"• {port}: risky port — no standard service.")
                     self.alerts.insert(0, {
                         "ts":     datetime.now().strftime("%H:%M:%S"),
                         "level":  2,
-                        "title":  f"Risky ports open: {ip}",
-                        "detail": (
-                            f"Open: {dev.port_summary()}  — "
-                            f"RDP/VNC/Telnet/SMB can be exploited."
-                        ),
+                        "title":  f"Risky ports open on {ip}"
+                                  + (f" ({dev.hostname})" if dev.hostname else ""),
+                        "detail": "\n".join(lines),
                     })
 
             self.alerts = self.alerts[:200]

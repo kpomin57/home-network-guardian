@@ -34,6 +34,71 @@ PROBE_PORTS: List[int] = [
 # Ports that indicate elevated risk when open on a LAN device
 RISKY_PORTS: set = {23, 135, 139, 445, 3389, 5900}
 
+# Per-port context used to explain alerts to the user.
+# Covers every port in SUSPICIOUS_PORTS and RISKY_PORTS.
+SUSPICIOUS_PORT_INFO: dict = {
+    23:    {
+        "name": "Telnet",
+        "why":  "Transmits all data — including passwords — in plaintext. "
+                "Obsolete; SSH has replaced it everywhere legitimate.",
+    },
+    135:   {
+        "name": "MSRPC",
+        "why":  "Windows RPC endpoint mapper. Exploited by Blaster, Sasser, "
+                "and many ransomware families for unauthenticated remote code execution.",
+    },
+    139:   {
+        "name": "NetBIOS",
+        "why":  "Legacy Windows file and printer sharing. Frequently abused for "
+                "credential harvesting, lateral movement, and ransomware propagation.",
+    },
+    445:   {
+        "name": "SMB",
+        "why":  "Windows file sharing. Weaponised by WannaCry, NotPetya, and the "
+                "NSA-leaked EternalBlue exploit. Should never be exposed to the internet.",
+    },
+    1337:  {
+        "name": "Leet",
+        "why":  "No standard service uses this port. Its name ('leet') is a deliberate "
+                "signal — almost exclusively seen with backdoors and RATs.",
+    },
+    3389:  {
+        "name": "RDP",
+        "why":  "Windows Remote Desktop Protocol. The most brute-forced port on the "
+                "internet and a primary ransomware delivery vector.",
+    },
+    4444:  {
+        "name": "Metasploit",
+        "why":  "Default reverse-shell listener port in the Metasploit exploitation "
+                "framework. Traffic here almost always indicates an active exploit.",
+    },
+    5900:  {
+        "name": "VNC",
+        "why":  "Virtual Network Computing remote desktop. Frequently deployed with "
+                "weak or no authentication, making it a common target for hijacking.",
+    },
+    6667:  {
+        "name": "IRC",
+        "why":  "Classic IRC chat port with no modern legitimate use. Heavily used "
+                "by botnets for command-and-control communication.",
+    },
+    9999:  {
+        "name": "Unknown",
+        "why":  "No well-known standard service. Commonly chosen by malware, "
+                "cryptominers, and remote-access trojans as a low-profile backdoor.",
+    },
+    12345: {
+        "name": "NetBus",
+        "why":  "NetBus remote-access trojan, active since the late 1990s. "
+                "No legitimate application uses this port.",
+    },
+    31337: {
+        "name": "Back Orifice",
+        "why":  "Back Orifice RAT port, deliberately chosen as an 'elite' number. "
+                "Presence is a near-certain indicator of malicious activity.",
+    },
+}
+
 # Private network ranges used for LAN detection
 _PRIVATE_NETS: List[ipaddress.IPv4Network] = [
     ipaddress.ip_network("10.0.0.0/8"),

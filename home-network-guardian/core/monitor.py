@@ -17,7 +17,12 @@ except ImportError:
 
 from core.alerts import Alert
 from core.models import Connection
-from core.utils import ALERT_CONN_COUNT, ALERT_MB_PER_MIN, SUSPICIOUS_PORTS
+from core.utils import (
+    ALERT_CONN_COUNT,
+    ALERT_MB_PER_MIN,
+    SUSPICIOUS_PORTS,
+    SUSPICIOUS_PORT_INFO,
+)
 
 
 class NetworkMonitor:
@@ -181,6 +186,10 @@ class NetworkMonitor:
     def _check_alerts(self, conns: List[Connection], sent_delta: int) -> List[Alert]:
         """Generate alerts for suspicious activity in the current snapshot.
 
+        Suspicious-port alerts are grouped by remote IP so that multiple
+        flagged ports to the same host produce a single, structured alert
+        rather than one noisy entry per connection.
+
         Args:
             conns: Current list of connections.
             sent_delta: Bytes sent in the last 3-second window.
@@ -190,6 +199,7 @@ class NetworkMonitor:
         """
         new: List[Alert] = []
 
+        # ── High connection count ─────────────────────────────────────────────
         ip_counts: dict = {}
         for c in conns:
             if c.remote_ip:
@@ -199,11 +209,35 @@ class NetworkMonitor:
                 new.append(Alert(2, f"High connections to {ip}",
                                  f"{count} simultaneous connections."))
 
+        # ── Suspicious ports — grouped by remote IP ───────────────────────────
+        sus_by_ip: dict = {}
         for c in conns:
-            if c.suspicious:
-                new.append(Alert(2, f"Suspicious port {c.remote_port}: {c.remote_ip}",
-                                 f"Process: {c.pname}"))
+            if c.suspicious and c.remote_ip:
+                sus_by_ip.setdefault(c.remote_ip, []).append(c)
 
+        for ip, sus_conns in sus_by_ip.items():
+            ports = sorted(set(c.remote_port for c in sus_conns))
+            procs = sorted(set(
+                c.pname for c in sus_conns if c.pname and c.pname != "?"
+            ))
+            proc_str = ", ".join(procs) if procs else "unknown process"
+
+            lines = [f"Process: {proc_str}"]
+            for port in ports:
+                info = SUSPICIOUS_PORT_INFO.get(port)
+                if info:
+                    lines.append(
+                        f"• {port} ({info['name']}): {info['why']}"
+                    )
+                else:
+                    lines.append(
+                        f"• {port}: flagged as suspicious — no standard service uses this port."
+                    )
+
+            new.append(Alert(2, f"Suspicious connection to {ip}",
+                             "\n".join(lines)))
+
+        # ── High upload rate ──────────────────────────────────────────────────
         mb_min = (sent_delta / 3) / (1024 * 1024) * 60
         if mb_min > ALERT_MB_PER_MIN:
             new.append(Alert(1, "High upload rate",
