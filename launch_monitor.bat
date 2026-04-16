@@ -4,7 +4,6 @@ color 0A
 
 echo ============================================
 echo   Home Network Guardian
-echo   Family Network Monitor
 echo ============================================
 echo.
 
@@ -21,12 +20,20 @@ if %errorlevel% neq 0 (
 echo [OK] Python found.
 echo.
 
-:: Install psutil if needed
+:: Install dependencies
 echo Checking/installing dependencies...
 python -m pip install psutil --quiet
 if %errorlevel% neq 0 (
     echo [WARNING] Could not install psutil automatically.
     echo Try running:  pip install psutil
+)
+
+python -m pip install scapy --quiet
+if %errorlevel% neq 0 (
+    echo [WARNING] Could not install scapy automatically.
+    echo Packet Capture tab will be unavailable.
+    echo Try running:  pip install scapy
+    echo Also install Npcap from https://npcap.com/ for raw packet access.
 )
 
 echo [OK] Dependencies ready.
@@ -36,8 +43,8 @@ echo.
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo [WARNING] Not running as Administrator.
-    echo For full network monitoring, right-click this file
-    echo and choose "Run as administrator".
+    echo For full network monitoring and packet capture, right-click this
+    echo file and choose "Run as administrator".
     echo.
     echo Starting with limited permissions...
     echo.
@@ -46,11 +53,11 @@ if %errorlevel% neq 0 (
 
 echo Starting Home Network Guardian...
 echo.
-python "%~dp0network_monitor.py"
+python "%~dp0home-network-guardian\main.py"
 
 if %errorlevel% neq 0 (
     echo.
     echo [ERROR] The program exited with an error.
-    echo Check that network_monitor.py is in the same folder as this file.
+    echo Check that the home-network-guardian folder is present alongside this file.
     pause
 )
